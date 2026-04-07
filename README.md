@@ -1,4 +1,6 @@
-# Bike Geometry Visualiser
+# FrameStack 
+
+Plotting and comparing bike geometries to find the right frame size and stem/spacer combination to match your bikes. Highly experimental. Currently under development. 
 
 Parse and plot bicycle frame geometry from a simple text file. Produces detailed 2-D side-view diagrams with all key measurements annotated, and supports overlaying multiple bikes for comparison.
 
