@@ -24,7 +24,7 @@ gph.graph_format_official()
 WHEEL_RADIUS = 336   # mm – 700c road wheel + ~25 mm tyre (622 mm rim ÷ 2 + tyre)
  
 PALETTE = {
-    'seat_tube' : '#E74C3C',
+    'seat_tube' : "#C43323",
     'top_tube'  : '#2980B9',
     'down_tube' : '#27AE60',
     'head_tube' : '#E67E22',
@@ -242,20 +242,22 @@ class Geometry():
     # ─────────────────────────────────────────────────────────────────────────────
     # Drawing helpers
     # ─────────────────────────────────────────────────────────────────────────────
-    
     def _tube(self, ax, a, b, color, lw=6, label=None, zorder=3, ls='-'):
+        """Draw a frame tube as a line between points a and b."""
         ax.plot([a[0], b[0]], [a[1], b[1]],
                 color=color, lw=lw, solid_capstyle='round',
                 zorder=zorder, ls=ls)
     
     
     def _ref(self, ax, p1, p2, color=None, ls='--'):
+        """Draw a reference line (e.g. for dimensions) between p1 and p2."""
         c = color or PALETTE['ref_line']
         ax.plot([p1[0], p2[0]], [p1[1], p2[1]],
                 color=c, lw=0.9, ls=ls, zorder=1)
     
     
     def _dim(self, ax, p1, p2, text, color='#777', off=(0, 0), fs=8.0, lw=1.2, zorder=6):
+        """Draw a dimension line with text annotation between p1 and p2."""
         mx = (p1[0]+p2[0])/2 + off[0]
         my = (p1[1]+p2[1])/2 + off[1]
         ax.annotate('', xy=tuple(p2), xytext=tuple(p1),
@@ -268,15 +270,16 @@ class Geometry():
     
     
     def _wheel(self, ax, centre, radius, n_spokes=16):
+        """Draw a wheel as concentric circles (tyre + rim) with spokes."""
         ax.add_patch(plt.Circle(centre, radius, # type: ignore
                                 color=PALETTE['wheel_tyre'], lw=14,
                                 fill=False, zorder=2))
-        ax.add_patch(plt.Circle(centre, radius - 13, # type: ignore
+        ax.add_patch(plt.Circle(centre, radius - 50, # type: ignore
                                 color=PALETTE['wheel_rim'], lw=1.8,
                                 fill=False, zorder=2))
         angles = np.linspace(0, 2*np.pi, n_spokes, endpoint=False)
         for a in angles:
-            spoke_end = centre + (radius - 13) * np.array([np.cos(a), np.sin(a)])
+            spoke_end = centre + (radius - 50) * np.array([np.cos(a), np.sin(a)])
             ax.plot([centre[0], spoke_end[0]], [centre[1], spoke_end[1]],
                     color=PALETTE['spoke'], lw=0.5, zorder=2, alpha=0.6)
         ax.add_patch(plt.Circle(centre, 18, color='#888', zorder=4)) # type: ignore
@@ -318,6 +321,7 @@ class Geometry():
     # ─────────────────────────────────────────────────────────────────────────────
     
     def plot_bike(self, fig, ax, wheel_radius: int = WHEEL_RADIUS):
+        """Plot the bike geometry in a 2-D side view."""
     
         ax.set_facecolor(PALETTE['bg'])
         fig.patch.set_facecolor(PALETTE['bg'])
@@ -628,13 +632,13 @@ class Geometry():
             theta  = np.linspace(0, 2 * np.pi, n)
             xr     = cx + radius * np.cos(theta)
             yr     = axle_y + radius * np.sin(theta)
-            half_tw = 13   # half tyre width in z
+            half_tw = 15   # half tyre width in z
             # Tyre edges at ±z
             for z_side in [-half_tw, half_tw]:
                 ax.plot(xr, np.full(n, z_side), yr,
                         color=PALETTE['wheel_tyre'], lw=4)
             # Rim at z = 0
-            rim_r = radius - 13
+            rim_r = radius - 50
             xrr = cx + rim_r * np.cos(theta)
             yrr = axle_y + rim_r * np.sin(theta)
             ax.plot(xrr, np.zeros(n), yrr,
