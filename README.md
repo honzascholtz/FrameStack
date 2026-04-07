@@ -18,8 +18,6 @@ numpy
 matplotlib
 ```
 
-You also need a local `Graph_setup.py` module that exposes `graph_format_official()` for plot styling.
-
 ## Input file format
 
 A plain-text, tab-separated (or whitespace-separated) file with one measurement per line:
