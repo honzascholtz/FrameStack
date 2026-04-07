@@ -35,7 +35,6 @@ PALETTE = {
     'spacer'    : '#5D6D7E',
     'bar'       : '#1A252F',
     'saddle'    : '#1A252F',
-    'wheel_rim' : '#444444',
     'wheel_rim' : "#000000",
     'wheel_tyre': '#1a1a1a',
     'spoke'     : '#aaaaaa',
