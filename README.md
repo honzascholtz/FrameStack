@@ -61,6 +61,8 @@ G.plot_bike(fig, ax)
 plt.show()
 ```
 
+![alt text](https://github.com/honzascholtz/SED_Fitter/blob/main/Images/Photometry.png "Example of the UI")
+
 ### Multi-bike comparison
 
 See `Geometry_comp.ipynb` for a worked example overlaying four bikes:

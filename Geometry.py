@@ -8,6 +8,7 @@ Coordinate system (origin = Bottom Bracket centre):
     +y  ↑  upward
 """
 
+from cgitb import text
 import sys
 import numpy as np
 import matplotlib.pyplot as plt
@@ -58,6 +59,7 @@ def plot_geometry(path: str):
     geo = Geometry(path)
 
     geo.plot_bike(f, ax)
+    return f,ax
 
 
 def plot_comparison(paths: list, colors=None, names=None):
@@ -101,7 +103,7 @@ class Geometry():
         self.compute_points()
     
 
-    def load_geometry(self, path: str) -> dict:
+    def load_geometry(self, path: str) -> dict[str, float]:
         """Read a tab-separated geometry file → dict of {str: float}."""
         geo = {}
         with open(path) as fh:
@@ -124,13 +126,14 @@ class Geometry():
                     except ValueError:
                         pass
         self.geo = geo
+        return geo
  
  
 # ─────────────────────────────────────────────────────────────────────────────
 # Key-point computation
 # ─────────────────────────────────────────────────────────────────────────────
  
-    def compute_points(self) -> dict:
+    def compute_points(self) -> dict[str, np.ndarray]:
         """
         Return a dict of 2-D frame points (numpy float64 arrays).
     
@@ -234,6 +237,7 @@ class Geometry():
             seat_to_bar_tip = seat_to_bar_tip,
             seat_to_bar_2d  = seat_to_bar_2d,
         ) 
+        return self.points
     
     # ─────────────────────────────────────────────────────────────────────────────
     # Drawing helpers
@@ -264,10 +268,10 @@ class Geometry():
     
     
     def _wheel(self, ax, centre, radius, n_spokes=16):
-        ax.add_patch(plt.Circle(centre, radius,
+        ax.add_patch(plt.Circle(centre, radius, # type: ignore
                                 color=PALETTE['wheel_tyre'], lw=14,
                                 fill=False, zorder=2))
-        ax.add_patch(plt.Circle(centre, radius - 13,
+        ax.add_patch(plt.Circle(centre, radius - 13, # type: ignore
                                 color=PALETTE['wheel_rim'], lw=1.8,
                                 fill=False, zorder=2))
         angles = np.linspace(0, 2*np.pi, n_spokes, endpoint=False)
@@ -275,8 +279,8 @@ class Geometry():
             spoke_end = centre + (radius - 13) * np.array([np.cos(a), np.sin(a)])
             ax.plot([centre[0], spoke_end[0]], [centre[1], spoke_end[1]],
                     color=PALETTE['spoke'], lw=0.5, zorder=2, alpha=0.6)
-        ax.add_patch(plt.Circle(centre, 18, color='#888', zorder=4))
-        ax.add_patch(plt.Circle(centre, 10, color=PALETTE['point'], zorder=5))
+        ax.add_patch(plt.Circle(centre, 18, color='#888', zorder=4)) # type: ignore
+        ax.add_patch(plt.Circle(centre, 10, color=PALETTE['point'], zorder=5)) # type: ignore
     
     
     def _saddle(self, ax, pos, sa_rad, saddle_w=120):
@@ -353,8 +357,8 @@ class Geometry():
         self._handlebar(ax, self.points['bar_centre'])
     
         # ── BB shell
-        ax.add_patch(plt.Circle(self.points['bb'], 28, color=PALETTE['bb_shell'], zorder=6))
-        ax.add_patch(plt.Circle(self.points['bb'], 14, color=PALETTE['point'],    zorder=7))
+        ax.add_patch(plt.Circle(self.points['bb'], 28, color=PALETTE['bb_shell'], zorder=6)) # type: ignore
+        ax.add_patch(plt.Circle(self.points['bb'], 14, color=PALETTE['point'],    zorder=7)) # type: ignore
     
         # ── Key-point labels
         kp = {
@@ -483,8 +487,9 @@ class Geometry():
             f"Seat → bar tip (3-D)\n"
             f"In-plane: {self.points['seat_to_bar_2d']:.0f} mm\n"
             f"+ ½ bar:  {self.points['seat_to_bar_tip']:.0f} mm",
-            xy=tuple(mid),
-            xytext=(mid[0] - 90, mid[1] + 90),
+            xy=(0.1,0.8),
+            xytext=(0.1,0.9),
+            textcoords=ax.transAxes,
             fontsize=8.5, color=PALETTE['dim_green'], ha='center',
             bbox=dict(fc='white', ec=PALETTE['dim_green'],
                     boxstyle='round,pad=0.55', lw=1.3, alpha=0.94),
@@ -511,8 +516,8 @@ class Geometry():
     
     
         ax.set_aspect('equal')
-        ax.set_xlabel('mm   (x  →  toward front wheel)', fontsize=10, labelpad=8)
-        ax.set_ylabel('mm   (y  ↑  upward)', fontsize=10, labelpad=8)
+        ax.set_xlabel('mm   (x  →  toward front wheel)', fontsize=15, labelpad=8)
+        ax.set_ylabel('mm   (y  ↑  upward)', fontsize=15, labelpad=8)
         ax.set_title('Bicycle Frame Geometry', fontsize=16, fontweight='bold', pad=16)
         ax.grid(True, alpha=0.18, zorder=0)
         ax.tick_params(labelsize=9)
@@ -564,8 +569,8 @@ class Geometry():
         self._handlebar(ax, self.points['bar_centre'])
     
         # ── BB shell
-        ax.add_patch(plt.Circle(self.points['bb'], 28, color=PALETTE['bb_shell'], zorder=6))
-        ax.add_patch(plt.Circle(self.points['bb'], 14, color=PALETTE['point'],    zorder=7))
+        ax.add_patch(plt.Circle(self.points['bb'], 28, color=PALETTE['bb_shell'], zorder=6))  # pyright: ignore[reportAttributeAccessIssue]
+        ax.add_patch(plt.Circle(self.points['bb'], 14, color=PALETTE['point'],    zorder=7)) # pyright: ignore[reportAttributeAccessIssue]
     
     
         ax.set_aspect('equal')
@@ -581,7 +586,7 @@ class Geometry():
     # 3-D plot
     # ─────────────────────────────────────────────────────────────────────────────
 
-    def plot_bike_3D(self, fig, ax, wheel_radius: int = WHEEL_RADIUS):
+    def plot_bike_3D(self, fig, ax=None, wheel_radius: int = WHEEL_RADIUS):
         """
         3-D view of the bike.
 
@@ -593,7 +598,12 @@ class Geometry():
         The frame lives in the z = 0 plane.
         Wheels are circles perpendicular to the x-axis.
         Handlebars and saddle extend in ±z.
+
+        A 3-D axes is created automatically from fig; any 2-D axes passed in
+        as ax is ignored.
         """
+        fig.clf()
+        ax = fig.add_subplot(111, projection='3d')
 
         ax.set_facecolor(PALETTE['bg'])
         fig.patch.set_facecolor(PALETTE['bg'])
@@ -612,19 +622,28 @@ class Geometry():
         def p3(pt2d, z=0.0):
             return np.array([pt2d[0], pt2d[1], z])
 
-        # ── Helper: wheel circle in the plane x = cx
+        # ── Helper: wheel circle in the x-y plane (direction of travel × vertical)
+        #           tyre has thickness in z (lateral)
         def wheel3(cx, axle_y, radius, n=120):
-            theta = np.linspace(0, 2 * np.pi, n)
-            zc = radius * np.cos(theta)
-            yc = axle_y + radius * np.sin(theta)
-            xc = np.full(n, cx)
-            ax.plot(xc, zc, yc, color=PALETTE['wheel_tyre'], lw=8, alpha=0.9)
+            theta  = np.linspace(0, 2 * np.pi, n)
+            xr     = cx + radius * np.cos(theta)
+            yr     = axle_y + radius * np.sin(theta)
+            half_tw = 13   # half tyre width in z
+            # Tyre edges at ±z
+            for z_side in [-half_tw, half_tw]:
+                ax.plot(xr, np.full(n, z_side), yr,
+                        color=PALETTE['wheel_tyre'], lw=4)
+            # Rim at z = 0
             rim_r = radius - 13
-            ax.plot(xc, rim_r * np.cos(theta), axle_y + rim_r * np.sin(theta),
+            xrr = cx + rim_r * np.cos(theta)
+            yrr = axle_y + rim_r * np.sin(theta)
+            ax.plot(xrr, np.zeros(n), yrr,
                     color=PALETTE['wheel_rim'], lw=1.5, alpha=0.7)
+            # Spokes
             for a in np.linspace(0, 2 * np.pi, 16, endpoint=False):
-                ax.plot([cx, cx], [0, rim_r * np.cos(a)],
-                        [axle_y, axle_y + rim_r * np.sin(a)],
+                sx = cx + rim_r * np.cos(a)
+                sy = axle_y + rim_r * np.sin(a)
+                ax.plot([cx, sx], [0, 0], [axle_y, sy],
                         color=PALETTE['spoke'], lw=0.5, alpha=0.5)
 
         pts = self.points
@@ -671,7 +690,7 @@ class Geometry():
         ax.plot([se[0], se[0]], [-half_bar, half_bar], [se[1], se[1]],
                 color=PALETTE['bar'], lw=7, solid_capstyle='round')
         for z_bar in [-half_bar, half_bar]:
-            ax.scatter([se[0]], [z_bar], zs=[se[1]], color=PALETTE['bar'], s=80)
+            ax.plot([se[0]], [z_bar], [se[1]], 'o', color=PALETTE['bar'], ms=8)
 
         # ── Saddle platform (±z) and seatpost stub
         sp = pts['seat_pos']
