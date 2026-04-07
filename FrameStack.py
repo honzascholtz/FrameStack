@@ -8,7 +8,6 @@ Coordinate system (origin = Bottom Bracket centre):
     +y  ↑  upward
 """
 
-from cgitb import text
 import sys
 import numpy as np
 import matplotlib.pyplot as plt
