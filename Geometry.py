@@ -91,7 +91,7 @@ def plot_comparison(paths: list, colors=None, names=None):
     ax.legend([h[i] for i in order], [l[i] for i in order],fontsize=15, ncol=3,
             loc='upper left', columnspacing=0.5,bbox_to_anchor=(0.05, 1.2))
 
-    plt.show()
+    return fig, ax
 # ─────────────────────────────────────────────────────────────────────────────
 # Geometry Class
 # ─────────────────────────────────────────────────────────────────────────────

@@ -61,7 +61,7 @@ G.plot_bike(fig, ax)
 plt.show()
 ```
 
-![alt text](https://github.com/honzascholtz/SED_Fitter/blob/main/Images/Photometry.png "Example of the UI")
+![alt text](https://github.com/honzascholtz/Bike_geometry/blob/main/Figures/Ribble_Endurance_L.png "Example of the UI")
 
 ### Multi-bike comparison
 
@@ -81,6 +81,8 @@ G.plot_comp(fig, ax, 'bike_c.txt', color='green')
 ax.legend()
 plt.show()
 ```
+![alt text](https://github.com/honzascholtz/Bike_geometry/blob/main/Figures/Comp_bikes.png "Example of the UI")
+
 
 ## Coordinate system
 
