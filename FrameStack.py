@@ -152,7 +152,7 @@ class FrameStack():
                     seat_pos = bb + seat_height * (-cos sa, sin sa)
     
         Stem        : clamps at ht_top (top of steerer / head tube).
-                    Stem angle measured from horizontal, positive = drops downward.
+                    Stem angle measured from  the head angle, positive = drops downward.
                     stem_end = ht_top + stem_len * (cos(alpha), -sin(alpha))
     
         Handlebars  : bar centre = stem_end (bars go perpendicular to the bike plane).
@@ -203,7 +203,8 @@ class FrameStack():
         spacer_top  = ht_top + self.geo.get('Spacers', 0.0) * steerer_dir
     
         # ── Stem clamps at the top of the spacer stack
-        sa_stem  = np.radians(self.geo.get('Stem Angle', 0.0))
+        sa_offset = 90- self.geo['Head Angle']
+        sa_stem  = np.radians(self.geo.get('Stem Angle', 0.0)-sa_offset)
         stem_dir = np.array([np.cos(sa_stem), -np.sin(sa_stem)])
         stem_base = spacer_top
         stem_end  = stem_base + self.geo.get('Stem length', 0.0) * stem_dir

@@ -14,6 +14,6 @@ Fork Rake / Offset	44.6
 Wheel Size	700C
 Seat height	730
 Stem length	88
-Stem Angle	6
+Stem Angle	0
 Bar width	400
 Spacers        65
