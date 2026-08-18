@@ -9,6 +9,7 @@ Coordinate system (origin = Bottom Bracket centre):
 """
 
 import sys
+from typing import Optional
 import numpy as np
 import matplotlib.pyplot as plt
 import matplotlib.patches as mpatches
@@ -125,9 +126,38 @@ class FrameStack():
                     except ValueError:
                         pass
         self.geo = geo
+        self._infer_missing_geometry(path)
         return geo
- 
- 
+
+    def _infer_missing_geometry(self, path: str):
+        """
+        Fill in fields manufacturers commonly omit or report differently,
+        deriving them from whatever related fields are present.
+        """
+        geo = self.geo
+
+        # Front Centre from Wheelbase / Chainstay / BB Drop (both axles on the ground):
+        #   Wheelbase = Front Centre + sqrt(Chainstay^2 - BB Drop^2)
+        if 'Front Centre' not in geo and {'Wheelbase', 'Chainstay', 'BB Drop'} <= geo.keys():
+            rear_reach = np.sqrt(geo['Chainstay']**2 - geo['BB Drop']**2)
+            geo['Front Centre'] = geo['Wheelbase'] - rear_reach
+            print(f"[{path}] Derived Front Centre = {geo['Front Centre']:.1f} mm "
+                  f"from Wheelbase, Chainstay, BB Drop.")
+
+        # Seat Tube C-C isn't derivable from C-T exactly (depends on tube
+        # diameter / collar), so approximate with C-T when C-C is absent.
+        if 'Seat Tube C-C' not in geo and 'Seat Tube C-T' in geo:
+            geo['Seat Tube C-C'] = geo['Seat Tube C-T']
+            print(f"[{path}] 'Seat Tube C-C' missing; approximating with "
+                  f"'Seat Tube C-T' = {geo['Seat Tube C-T']:.1f} mm.")
+
+        # Per-bike wheel radius from BB Height + BB Drop, when given, since
+        # tyre/wheel size (and hence WHEEL_RADIUS) varies by bike category.
+        self.wheel_radius = None
+        if {'BB Height', 'BB Drop'} <= geo.keys():
+            self.wheel_radius = geo['BB Height'] + geo['BB Drop']
+
+
 # ─────────────────────────────────────────────────────────────────────────────
 # Key-point computation
 # ─────────────────────────────────────────────────────────────────────────────
@@ -320,9 +350,10 @@ class FrameStack():
     # Main plot
     # ─────────────────────────────────────────────────────────────────────────────
     
-    def plot_bike(self, fig, ax, wheel_radius: int = WHEEL_RADIUS):
+    def plot_bike(self, fig, ax, wheel_radius: Optional[int] = None):
         """Plot the bike geometry in a 2-D side view."""
-    
+        wheel_radius = wheel_radius or self.wheel_radius or WHEEL_RADIUS
+
         ax.set_facecolor(PALETTE['bg'])
         fig.patch.set_facecolor(PALETTE['bg'])
     
@@ -529,11 +560,12 @@ class FrameStack():
         plt.tight_layout()
         return fig
  
-    def plot_comp(self, fig, ax,path,  wheel_radius: int = WHEEL_RADIUS, color='k'):
+    def plot_comp(self, fig, ax, path, wheel_radius: Optional[int] = None, color='k'):
         """Plot a comparison view with two bikes overlaid."""
 
         self.load_geometry(path)
         self.compute_points()
+        wheel_radius = wheel_radius or self.wheel_radius or WHEEL_RADIUS
 
         ax.set_facecolor(PALETTE['bg'])
         fig.patch.set_facecolor(PALETTE['bg'])
@@ -590,7 +622,7 @@ class FrameStack():
     # 3-D plot
     # ─────────────────────────────────────────────────────────────────────────────
 
-    def plot_bike_3D(self, fig, ax=None, wheel_radius: int = WHEEL_RADIUS):
+    def plot_bike_3D(self, fig, ax=None, wheel_radius: Optional[int] = None):
         """
         3-D view of the bike.
 
@@ -606,6 +638,7 @@ class FrameStack():
         A 3-D axes is created automatically from fig; any 2-D axes passed in
         as ax is ignored.
         """
+        wheel_radius = wheel_radius or self.wheel_radius or WHEEL_RADIUS
         fig.clf()
         ax = fig.add_subplot(111, projection='3d')
 
