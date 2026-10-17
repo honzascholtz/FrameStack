@@ -1,13 +1,13 @@
-Reach	387
-Stack	590
-Top Tube (effective)	553
+Reach	388
+Stack	586
+Top Tube (effective)	562
 Seat Tube C-C	522
-Head Angle	73	
+Head Angle	72.5	
 Seat Angle	73.5	
-Head Tube	165.	
-Chainstay	415	
-Wheelbase	994	
-Front Centre	609.5	
+Head Tube	161.	
+Chainstay	418	
+Wheelbase	1009	
+Standover   815
 BB Drop 	73
 Fork Rake / Offset	36.8	
 Seat height	720

@@ -1,0 +1,17 @@
+Reach	393	
+Stack	579	
+Top Tube (effective)	565
+Seat Tube C-C	520	
+Head Angle	73	
+Seat Angle	73.5	
+Head Tube	172	
+Chainstay	415	
+Wheelbase	1006	
+Front Centre	601
+BB Drop	69	
+Fork Rake / Offset	45	
+Seat height	740
+Stem length	90
+Stem Angle	6
+Bar width	400
+Spacers        55

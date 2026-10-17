@@ -62,26 +62,28 @@ def plot_geometry(path: str):
     return f,ax
 
 
-def plot_comparison(paths: list, colors=None, names=None):
+def plot_comparison(paths: list, colors=None, names=None, alphas=None):
 
     if names is None:
         names = [f"Bike {i+1}" for i in range(len(paths))]
     if colors is None:
         colors = ['blue', 'orange', 'green', 'purple', 'red', 'cyan', 'magenta', 'brown', 'olive', 'teal']
         colors = colors[:len(paths)]
+    if alphas is None:
+        alphas = [1.0] * len(paths)
 
     fig, ax = plt.subplots(figsize=(12, 6))
     order = np.array([], dtype=int)
 
-    print(paths, names, colors)
+    print(paths, names, colors, alphas)
 
-    for i, (p, c, name) in enumerate(zip(paths, colors,names)):
+    for i, (p, c, name, a) in enumerate(zip(paths, colors, names, alphas)):
         G = FrameStack(p)
-    
-        fig = G.plot_comp(fig, ax, p, color=c)
 
-        ax.plot([], [], color=c, label=name)
-        
+        fig = G.plot_comp(fig, ax, p, color=c, alpha=a)
+
+        ax.plot([], [], color=c, alpha=a, label=name)
+
         order= np.append(order, -i-1)
 
 
@@ -272,11 +274,11 @@ class FrameStack():
     # ─────────────────────────────────────────────────────────────────────────────
     # Drawing helpers
     # ─────────────────────────────────────────────────────────────────────────────
-    def _tube(self, ax, a, b, color, lw=6, label=None, zorder=3, ls='-'):
+    def _tube(self, ax, a, b, color, lw=6, label=None, zorder=3, ls='-', alpha=1.0):
         """Draw a frame tube as a line between points a and b."""
         ax.plot([a[0], b[0]], [a[1], b[1]],
                 color=color, lw=lw, solid_capstyle='round',
-                zorder=zorder, ls=ls)
+                zorder=zorder, ls=ls, alpha=alpha)
     
     
     def _ref(self, ax, p1, p2, color=None, ls='--'):
@@ -316,20 +318,20 @@ class FrameStack():
         ax.add_patch(plt.Circle(centre, 10, color=PALETTE['point'], zorder=5)) # type: ignore
     
     
-    def _saddle(self, ax, pos, sa_rad, saddle_w=120, color='k'):
+    def _saddle(self, ax, pos, sa_rad, saddle_w=120, color='k', alpha=1.0):
         """Simplified saddle: platform + seatpost stub."""
         sx, sy = pos
         # Saddle platform (horizontal, slightly forward-biased)
         ax.plot([sx - saddle_w*0.35, sx + saddle_w*0.65], [sy, sy],
-                color=color, lw=9, solid_capstyle='round', zorder=10)
+                color=color, lw=9, solid_capstyle='round', zorder=10, alpha=alpha)
         # Seatpost stub downward along seat-tube direction
         post_dir = np.array([-np.cos(sa_rad), np.sin(sa_rad)])
         post_end = pos - 65 * post_dir
         ax.plot([sx, post_end[0]], [sy, post_end[1]],
-                color=color, lw=3.5, zorder=9)
+                color=color, lw=3.5, zorder=9, alpha=alpha)
         # Centre dot
-        ax.plot(sx, sy, 'o', ms=7, color='white',          zorder=11)
-        ax.plot(sx, sy, 'o', ms=3.5, color=color, zorder=12)
+        ax.plot(sx, sy, 'o', ms=7, color='white',          zorder=11, alpha=alpha)
+        ax.plot(sx, sy, 'o', ms=3.5, color=color, zorder=12, alpha=alpha)
     
     
     def _handlebar(self, ax, centre):
@@ -560,7 +562,7 @@ class FrameStack():
         plt.tight_layout()
         return fig
  
-    def plot_comp(self, fig, ax, path, wheel_radius: Optional[int] = None, color='k'):
+    def plot_comp(self, fig, ax, path, wheel_radius: Optional[int] = None, color='k', alpha=1.0):
         """Plot a comparison view with two bikes overlaid."""
 
         self.load_geometry(path)
@@ -586,22 +588,22 @@ class FrameStack():
             self._wheel(ax, axle, wheel_radius)
     
         # ── Frame tubes
-        self._tube(ax, self.points['bb'],             self.points['rear_axle'],      color, lw=8)
-        self._tube(ax, self.points['rear_axle'],      self.points['ss_jn'],         color, lw=7)
-        self._tube(ax, self.points['bb'],             self.points['seat_frame_top'], color, lw=8)
-        self._tube(ax, self.points['seat_frame_top'], self.points['ht_top'],         color, lw=7)
-        self._tube(ax, self.points['bb'],             self.points['ht_bottom'],      color, lw=7)
-        self._tube(ax, self.points['ht_top'],         self.points['ht_bottom'],      color, lw=12)
-        self._tube(ax, self.points['ht_bottom'],      self.points['front_axle'],     color, lw=7)
+        self._tube(ax, self.points['bb'],             self.points['rear_axle'],      color, lw=8, alpha=alpha)
+        self._tube(ax, self.points['rear_axle'],      self.points['ss_jn'],         color, lw=7, alpha=alpha)
+        self._tube(ax, self.points['bb'],             self.points['seat_frame_top'], color, lw=8, alpha=alpha)
+        self._tube(ax, self.points['seat_frame_top'], self.points['ht_top'],         color, lw=7, alpha=alpha)
+        self._tube(ax, self.points['bb'],             self.points['ht_bottom'],      color, lw=7, alpha=alpha)
+        self._tube(ax, self.points['ht_top'],         self.points['ht_bottom'],      color, lw=12, alpha=alpha)
+        self._tube(ax, self.points['ht_bottom'],      self.points['front_axle'],     color, lw=7, alpha=alpha)
 
         # ── Spacer stack (steerer above head tube, below stem)
-        self._tube(ax, self.points['ht_top'], self.points['spacer_top'], color, lw=10, zorder=8)
+        self._tube(ax, self.points['ht_top'], self.points['spacer_top'], color, lw=10, zorder=8, alpha=alpha)
 
         # ── Stem
-        self._tube(ax, self.points['stem_base'], self.points['stem_end'], color, lw=6, zorder=9)
-    
+        self._tube(ax, self.points['stem_base'], self.points['stem_end'], color, lw=6, zorder=9, alpha=alpha)
+
         # ── Saddle & handlebar
-        self._saddle(ax, self.points['seat_pos'], sa_rad, color=color)
+        self._saddle(ax, self.points['seat_pos'], sa_rad, color=color, alpha=alpha)
         self._handlebar(ax, self.points['bar_centre'])
     
         # ── BB shell
