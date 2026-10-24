@@ -62,7 +62,7 @@ def plot_geometry(path: str):
     return f,ax
 
 
-def plot_comparison(paths: list, colors=None, names=None, alphas=None):
+def plot_comparison(paths: list, colors=None, names=None, alphas=None, column_indices=None):
 
     if names is None:
         names = [f"Bike {i+1}" for i in range(len(paths))]
@@ -71,14 +71,16 @@ def plot_comparison(paths: list, colors=None, names=None, alphas=None):
         colors = colors[:len(paths)]
     if alphas is None:
         alphas = [1.0] * len(paths)
+    if column_indices is None:
+        column_indices = [0] * len(paths)
 
     fig, ax = plt.subplots(figsize=(12, 6))
     order = np.array([], dtype=int)
 
-    print(paths, names, colors, alphas)
+    print(paths, names, colors, alphas, column_indices)
 
-    for i, (p, c, name, a) in enumerate(zip(paths, colors, names, alphas)):
-        G = FrameStack(p)
+    for i, (p, c, name, a, col_idx) in enumerate(zip(paths, colors, names, alphas, column_indices)):
+        G = FrameStack(p, column_index=col_idx)
 
         fig = G.plot_comp(fig, ax, p, color=c, alpha=a)
 
@@ -98,10 +100,10 @@ def plot_comparison(paths: list, colors=None, names=None, alphas=None):
 # Geometry Class
 # ─────────────────────────────────────────────────────────────────────────────
 class FrameStack():
-    def __init__(self, path: str):
+    def __init__(self, path: str, column_index: int = 0):
         self.path = path
         
-        self.load_geometry(path)
+        self.load_geometry(path, column_index)
         self.compute_points()
     
 
@@ -160,7 +162,7 @@ class FrameStack():
         clean_key = key.strip().lower()
         return self.KEY_ALIASES.get(clean_key, key.strip())
 
-    def load_geometry(self, path: str) -> dict[str, float]:
+    def load_geometry(self, path: str, column_index: int = 0) -> dict[str, float]:
         """Read a tab-separated, space-separated, or CSV geometry file → dict of {str: float}."""
         geo = {}
         with open(path) as fh:
@@ -169,36 +171,42 @@ class FrameStack():
                 if not line:
                     continue
                 
-                # Support explicit tab-separated first
+                parts = []
+                # Support explicit tab-separated first (which often happens when copy-pasting tables)
                 if '\t' in line:
-                    parts = line.split('\t', 1)
-                # Support CSV format (e.g., Geometry Geeks exports)
+                    parts = line.split('\t')
+                # Support CSV format
                 elif ',' in line:
                     parts = line.split(',')
-                    key_part = parts[0]
-                    val_part = None
-                    # Find the first numeric value in the columns
-                    for p in parts[1:]:
-                        try:
-                            float(p.strip())
-                            val_part = p
-                            break
-                        except ValueError:
-                            continue
-                    if val_part:
-                        parts = [key_part, val_part]
                 # Fall back to whitespace-padded format
                 else:
                     parts = line.rsplit(None, 1)
 
                 if len(parts) >= 2:
-                    try:
-                        raw_key = parts[0].strip()
-                        val = float(parts[1].strip())
-                        norm_key = self._normalize_key(raw_key)
-                        geo[norm_key] = val
-                    except ValueError:
-                        pass
+                    key_part = parts[0].strip()
+                    numeric_vals = []
+                    # Find all numeric values in the subsequent columns
+                    for p in parts[1:]:
+                        try:
+                            # Try to extract just numbers, dots, and minus signs
+                            clean_p = ''.join(c for c in p if c.isdigit() or c in '.-')
+                            if clean_p and clean_p != '-' and clean_p != '.':
+                                float(clean_p) # Verify it parses
+                                numeric_vals.append(clean_p)
+                        except ValueError:
+                            continue
+                    
+                    if numeric_vals:
+                        # Use requested column index if available, else use the first available column
+                        idx = min(column_index, len(numeric_vals) - 1)
+                        val_part = numeric_vals[idx]
+                        try:
+                            raw_key = key_part
+                            val = float(val_part)
+                            norm_key = self._normalize_key(raw_key)
+                            geo[norm_key] = val
+                        except ValueError:
+                            pass
                         
         self.geo = geo
         self._infer_missing_geometry(path)
@@ -279,6 +287,41 @@ class FrameStack():
         self.wheel_radius = None
         if {'BB Height', 'BB Drop'} <= geo.keys():
             self.wheel_radius = geo['BB Height'] + geo['BB Drop']
+
+        # 6. Hard defaults for visualization if missing
+        if 'BB Drop' not in geo:
+            geo['BB Drop'] = 70.0
+            print(f"[{path}] 'BB Drop' missing; using default 70.0 mm.")
+        
+        # After forcing BB Drop, re-check Front Centre
+        if 'Front Centre' not in geo and {'Wheelbase', 'Chainstay'} <= geo.keys():
+            rear_reach = np.sqrt(max(0, geo['Chainstay']**2 - geo['BB Drop']**2))
+            geo['Front Centre'] = geo['Wheelbase'] - rear_reach
+            print(f"[{path}] Derived Front Centre = {geo['Front Centre']:.1f} mm "
+                  f"from Wheelbase, Chainstay, default BB Drop.")
+                  
+        if 'Front Centre' not in geo:
+            geo['Front Centre'] = 600.0
+            print(f"[{path}] 'Front Centre' missing; using default 600.0 mm.")
+            
+        if 'Seat height' not in geo:
+            st = geo.get('Seat Tube C-C', geo.get('Seat Tube C-T', 500))
+            geo['Seat height'] = st + 150.0
+            print(f"[{path}] 'Seat height' missing; using default {geo['Seat height']:.1f} mm.")
+            
+        if 'Top Tube (effective)' not in geo:
+            geo['Top Tube (effective)'] = geo.get('Reach', 380) + 150.0
+            print(f"[{path}] 'Top Tube (effective)' missing; using default {geo['Top Tube (effective)']:.1f} mm.")
+            
+        # Fallbacks for other critically required fields to prevent crashing
+        if 'Head Tube' not in geo: geo['Head Tube'] = 140.0
+        if 'Head Angle' not in geo: geo['Head Angle'] = 73.0
+        if 'Seat Angle' not in geo: geo['Seat Angle'] = 73.0
+        if 'Chainstay' not in geo: geo['Chainstay'] = 410.0
+        if 'Reach' not in geo: geo['Reach'] = 380.0
+        if 'Stack' not in geo: geo['Stack'] = 550.0
+        if 'Seat Tube C-C' not in geo: geo['Seat Tube C-C'] = geo.get('Seat Tube C-T', 500.0)
+        if 'Fork Rake / Offset' not in geo: geo['Fork Rake / Offset'] = 45.0
 
 
 # ─────────────────────────────────────────────────────────────────────────────

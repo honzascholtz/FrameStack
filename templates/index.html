@@ -125,13 +125,21 @@
 
             <form method="POST" id="geometryForm">
                 <div id="bikeInputsContainer">
-                    {% for name, text in bikes_input %}
+                    {% for name, text, col_idx, sp, sl, sa, bw in bikes_input %}
                     <div class="bike-input">
                         <div style="overflow: hidden; margin-bottom: 5px;">
                             <input type="text" name="bike_name" value="{{ name }}" placeholder="Bike {{ loop.index }}" style="float: left; width: 65%; padding: 6px; font-weight: bold; border: 1px solid #ccc; border-radius: 3px;">
-                            {% if loop.index > 1 %}
                             <button type="button" class="remove-btn" onclick="this.parentElement.parentElement.remove(); updateBikeIndices();">Remove</button>
-                            {% endif %}
+                        </div>
+                        <div style="margin-bottom: 8px; font-size: 13px;">
+                            <label>Data Column (Size): <input type="number" name="column_index" value="{{ col_idx }}" min="1" style="width: 50px; padding: 4px; border: 1px solid #ccc; border-radius: 3px;"></label>
+                            <span style="color: #777; margin-left: 10px;">e.g., 1 for XS, 2 for S</span>
+                        </div>
+                        <div style="margin-bottom: 8px; font-size: 12px; display: flex; flex-wrap: wrap; gap: 8px; background: #fff; padding: 8px; border: 1px solid #ddd; border-radius: 4px;">
+                            <label style="flex: 1 1 45%;">Spacers (mm): <input type="number" name="spacers" value="{{ sp }}" style="width: 50px; padding: 2px;"></label>
+                            <label style="flex: 1 1 45%;">Stem Len (mm): <input type="number" name="stem_length" value="{{ sl }}" style="width: 50px; padding: 2px;"></label>
+                            <label style="flex: 1 1 45%;">Stem Ang (°): <input type="number" name="stem_angle" value="{{ sa }}" step="0.1" style="width: 50px; padding: 2px;"></label>
+                            <label style="flex: 1 1 45%;">Bar Width (mm): <input type="number" name="bar_width" value="{{ bw }}" style="width: 50px; padding: 2px;"></label>
                         </div>
                         <input type="file" class="fileInput" accept=".txt,.csv" style="margin: 10px 0; width: 100%; box-sizing: border-box;">
                         <textarea name="geo_text" placeholder="Paste geometry here...">{{ text }}</textarea>
@@ -139,7 +147,10 @@
                     {% endfor %}
                 </div>
                 
-                <button type="button" class="secondary" onclick="addBikeInput()">+ Add Another Bike</button>
+                <div style="display: flex; gap: 10px; margin-bottom: 10px;">
+                    <button type="button" class="secondary" onclick="addBikeInput()" style="margin-bottom: 0;">+ Add Another Bike</button>
+                    <button type="button" onclick="window.location.href='/'" style="background-color: #7f8c8d; margin-bottom: 0;">Clear All</button>
+                </div>
                 <button type="submit">Plot Comparison</button>
             </form>
 
@@ -187,6 +198,16 @@
                             <input type="text" name="bike_name" value="Bike ${index}" placeholder="Bike ${index}" style="float: left; width: 65%; padding: 6px; font-weight: bold; border: 1px solid #ccc; border-radius: 3px;">
                             <button type="button" class="remove-btn" onclick="this.parentElement.parentElement.remove(); updateBikeIndices();">Remove</button>
                         </div>
+                        <div style="margin-bottom: 8px; font-size: 13px;">
+                            <label>Data Column (Size): <input type="number" name="column_index" value="1" min="1" style="width: 50px; padding: 4px; border: 1px solid #ccc; border-radius: 3px;"></label>
+                            <span style="color: #777; margin-left: 10px;">e.g., 1 for XS, 2 for S</span>
+                        </div>
+                        <div style="margin-bottom: 8px; font-size: 12px; display: flex; flex-wrap: wrap; gap: 8px; background: #fff; padding: 8px; border: 1px solid #ddd; border-radius: 4px;">
+                            <label style="flex: 1 1 45%;">Spacers (mm): <input type="number" name="spacers" value="20" style="width: 50px; padding: 2px;"></label>
+                            <label style="flex: 1 1 45%;">Stem Len (mm): <input type="number" name="stem_length" value="100" style="width: 50px; padding: 2px;"></label>
+                            <label style="flex: 1 1 45%;">Stem Ang (°): <input type="number" name="stem_angle" value="6.0" step="0.1" style="width: 50px; padding: 2px;"></label>
+                            <label style="flex: 1 1 45%;">Bar Width (mm): <input type="number" name="bar_width" value="420" style="width: 50px; padding: 2px;"></label>
+                        </div>
                         <input type="file" class="fileInput" accept=".txt,.csv" style="margin: 10px 0; width: 100%; box-sizing: border-box;">
                         <textarea name="geo_text" placeholder="Paste geometry here..."></textarea>
                     `;
@@ -231,7 +252,8 @@
                     
                     <h3 style="margin-top: 30px;">How to use:</h3>
                     <ul style="margin-bottom: 30px; padding-left: 20px;">
-                        <li style="margin-bottom: 10px;">Paste your bike geometry measurements (tab-separated or CSV from sources like Geometry Geeks) into the text boxes on the left.</li>
+                        <li style="margin-bottom: 10px;">Paste your bike geometry measurements (tab-separated) directly into the text boxes on the left.</li>
+                        <li style="margin-bottom: 10px;"><strong>Importing from Geometry Geeks:</strong> Go to the bike's page on <a href="https://geometrygeeks.bike" target="_blank">Geometry Geeks</a>, click and drag to highlight their geometry table, copy it (Ctrl+C), and paste it directly into the text box here!</li>
                         <li style="margin-bottom: 10px;">Alternatively, use the file browser to load a <code>.txt</code> or <code>.csv</code> file directly.</li>
                         <li style="margin-bottom: 10px;">Click <strong>+ Add Another Bike</strong> to compare multiple frames overlaid on top of each other.</li>
                         <li style="margin-bottom: 10px;">Click <strong>Plot Comparison</strong> to generate a detailed 2D side-view diagram with key measurements annotated.</li>
