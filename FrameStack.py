@@ -105,28 +105,101 @@ class FrameStack():
         self.compute_points()
     
 
+    KEY_ALIASES = {
+        'hta': 'Head Angle',
+        'head tube angle': 'Head Angle',
+        'head angle': 'Head Angle',
+        'ha': 'Head Angle',
+        'sta': 'Seat Angle',
+        'seat tube angle': 'Seat Angle',
+        'seat angle': 'Seat Angle',
+        'sa': 'Seat Angle',
+        'eff top tube': 'Top Tube (effective)',
+        'top tube (effective)': 'Top Tube (effective)',
+        'top tube': 'Top Tube (effective)',
+        'top tube length': 'Top Tube (effective)',
+        'ett': 'Top Tube (effective)',
+        'bottom bracket drop': 'BB Drop',
+        'bb drop': 'BB Drop',
+        'bb height': 'BB Height',
+        'bottom bracket height': 'BB Height',
+        'cs': 'Chainstay',
+        'chainstay': 'Chainstay',
+        'chainstay length': 'Chainstay',
+        'chain stays': 'Chainstay',
+        'wb': 'Wheelbase',
+        'wheelbase': 'Wheelbase',
+        'wheel base': 'Wheelbase',
+        'ht': 'Head Tube',
+        'head tube': 'Head Tube',
+        'head tube length': 'Head Tube',
+        'fc': 'Front Centre',
+        'front centre': 'Front Centre',
+        'front center': 'Front Centre',
+        'fork rake / offset': 'Fork Rake / Offset',
+        'fork rake': 'Fork Rake / Offset',
+        'fork offset': 'Fork Rake / Offset',
+        'rake': 'Fork Rake / Offset',
+        'offset': 'Fork Rake / Offset',
+        'st': 'Seat Tube C-T',
+        'seat tube c-t': 'Seat Tube C-T',
+        'seat tube length': 'Seat Tube C-T',
+        'seat tube': 'Seat Tube C-T',
+        'seat tube c-c': 'Seat Tube C-C',
+        'reach': 'Reach',
+        'stack': 'Stack',
+        'spacers': 'Spacers',
+        'stem length': 'Stem length',
+        'stem angle': 'Stem Angle',
+        'bar width': 'Bar width',
+        'seat height': 'Seat height'
+    }
+
+    def _normalize_key(self, key: str) -> str:
+        """Normalize a geometry key using aliases."""
+        clean_key = key.strip().lower()
+        return self.KEY_ALIASES.get(clean_key, key.strip())
+
     def load_geometry(self, path: str) -> dict[str, float]:
-        """Read a tab-separated geometry file → dict of {str: float}."""
+        """Read a tab-separated, space-separated, or CSV geometry file → dict of {str: float}."""
         geo = {}
         with open(path) as fh:
             for line in fh:
                 line = line.strip()
                 if not line:
                     continue
-                # Support both tab-separated and whitespace-padded files.
-                # Split on tab first; if that gives only one token, fall back
-                # to splitting on the last run of whitespace before the value.
+                
+                # Support explicit tab-separated first
                 if '\t' in line:
                     parts = line.split('\t', 1)
+                # Support CSV format (e.g., Geometry Geeks exports)
+                elif ',' in line:
+                    parts = line.split(',')
+                    key_part = parts[0]
+                    val_part = None
+                    # Find the first numeric value in the columns
+                    for p in parts[1:]:
+                        try:
+                            float(p.strip())
+                            val_part = p
+                            break
+                        except ValueError:
+                            continue
+                    if val_part:
+                        parts = [key_part, val_part]
+                # Fall back to whitespace-padded format
                 else:
-                    # rsplit on whitespace: key may contain spaces (e.g. "Top Tube")
-                    # so split from the right to isolate the numeric value.
                     parts = line.rsplit(None, 1)
+
                 if len(parts) >= 2:
                     try:
-                        geo[parts[0].strip()] = float(parts[1].strip())
+                        raw_key = parts[0].strip()
+                        val = float(parts[1].strip())
+                        norm_key = self._normalize_key(raw_key)
+                        geo[norm_key] = val
                     except ValueError:
                         pass
+                        
         self.geo = geo
         self._infer_missing_geometry(path)
         return geo
@@ -137,15 +210,63 @@ class FrameStack():
         deriving them from whatever related fields are present.
         """
         geo = self.geo
+        
+        # 1. BB Drop / BB Height
+        # Assuming a default wheel radius if only one is provided
+        # wheel radius = BB Height + BB Drop
+        default_wheel_radius = 336 # 700c default
+        if 'BB Drop' not in geo and 'BB Height' in geo:
+            geo['BB Drop'] = default_wheel_radius - geo['BB Height']
+            print(f"[{path}] Derived BB Drop = {geo['BB Drop']:.1f} mm from BB Height.")
+        elif 'BB Height' not in geo and 'BB Drop' in geo:
+            geo['BB Height'] = default_wheel_radius - geo['BB Drop']
+            print(f"[{path}] Derived BB Height = {geo['BB Height']:.1f} mm from BB Drop.")
 
-        # Front Centre from Wheelbase / Chainstay / BB Drop (both axles on the ground):
-        #   Wheelbase = Front Centre + sqrt(Chainstay^2 - BB Drop^2)
-        if 'Front Centre' not in geo and {'Wheelbase', 'Chainstay', 'BB Drop'} <= geo.keys():
-            rear_reach = np.sqrt(geo['Chainstay']**2 - geo['BB Drop']**2)
-            geo['Front Centre'] = geo['Wheelbase'] - rear_reach
-            print(f"[{path}] Derived Front Centre = {geo['Front Centre']:.1f} mm "
-                  f"from Wheelbase, Chainstay, BB Drop.")
+        # 2. Front Centre & Wheelbase
+        # Wheelbase = Front Centre + rear_reach
+        # rear_reach = sqrt(Chainstay^2 - BB Drop^2)
+        if {'Chainstay', 'BB Drop'} <= geo.keys():
+            rear_reach = np.sqrt(max(0, geo['Chainstay']**2 - geo['BB Drop']**2))
+            
+            if 'Front Centre' not in geo and 'Wheelbase' in geo:
+                geo['Front Centre'] = geo['Wheelbase'] - rear_reach
+                print(f"[{path}] Derived Front Centre = {geo['Front Centre']:.1f} mm "
+                      f"from Wheelbase, Chainstay, BB Drop.")
+            elif 'Wheelbase' not in geo and 'Front Centre' in geo:
+                geo['Wheelbase'] = geo['Front Centre'] + rear_reach
+                print(f"[{path}] Derived Wheelbase = {geo['Wheelbase']:.1f} mm "
+                      f"from Front Centre, Chainstay, BB Drop.")
 
+        # 3. Front Centre (alternative)
+        # If no wheelbase, derive from Reach, Head Angle, Head Tube, Fork length / Rake
+        # This requires more complex trig if we want to be perfect, but let's stick to simple
+        # for now if they have reach, HA, HT, fork offset and fork length (axle to crown)
+        # Since fork length isn't in our standard list, we might skip full front center derivation 
+        # from the front end unless we have it.
+
+        # 4. Reach and Stack from Top Tube
+        # This is an approximation as it assumes seat tube meets top tube exactly at the top.
+        # ett_x = Reach - ETT
+        # ett_y = Stack
+        # If we have Seat Angle, Top Tube (effective), and Stack, we can find Reach.
+        # ETT extends horizontally from the head tube (at Stack height) back to the seat post axis.
+        # Seat post axis x-coord at height y = Stack is: x = -Stack / tan(Seat Angle)
+        # Reach = ETT + (Seat post axis x-coord) = ETT - Stack / tan(Seat Angle)
+        if 'Top Tube (effective)' in geo and 'Seat Angle' in geo:
+            sa_rad = np.radians(geo['Seat Angle'])
+            
+            if 'Reach' not in geo and 'Stack' in geo:
+                # Reach = ETT - Stack / tan(SA)
+                geo['Reach'] = geo['Top Tube (effective)'] - (geo['Stack'] / np.tan(sa_rad))
+                print(f"[{path}] Derived Reach = {geo['Reach']:.1f} mm from ETT, Stack, Seat Angle.")
+            
+            elif 'Stack' not in geo and 'Reach' in geo:
+                # Stack = (ETT - Reach) * tan(SA)
+                geo['Stack'] = (geo['Top Tube (effective)'] - geo['Reach']) * np.tan(sa_rad)
+                print(f"[{path}] Derived Stack = {geo['Stack']:.1f} mm from ETT, Reach, Seat Angle.")
+
+
+        # 5. Seat Tube Approximations
         # Seat Tube C-C isn't derivable from C-T exactly (depends on tube
         # diameter / collar), so approximate with C-T when C-C is absent.
         if 'Seat Tube C-C' not in geo and 'Seat Tube C-T' in geo:

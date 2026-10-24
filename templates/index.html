@@ -1,0 +1,235 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>FrameStack - Bike Geometry Web</title>
+    <style>
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+            margin: 0;
+            padding: 20px;
+            background-color: #F7F7F7;
+            color: #333;
+        }
+        h1 {
+            color: #2980B9;
+        }
+        .container {
+            display: flex;
+            gap: 20px;
+            max-width: 1400px;
+            margin: 0 auto;
+        }
+        .sidebar {
+            flex: 0 0 350px;
+            background: white;
+            padding: 20px;
+            border-radius: 8px;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+        }
+        .main-content {
+            flex: 1;
+            background: white;
+            padding: 20px;
+            border-radius: 8px;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+            text-align: center;
+        }
+        .bike-input {
+            border: 1px solid #eee;
+            padding: 10px;
+            margin-bottom: 15px;
+            border-radius: 4px;
+            background-color: #fafafa;
+        }
+        textarea {
+            width: 100%;
+            height: 150px;
+            font-family: monospace;
+            padding: 10px;
+            box-sizing: border-box;
+            border: 1px solid #ccc;
+            border-radius: 4px;
+            margin-bottom: 10px;
+            white-space: pre;
+        }
+        button {
+            background-color: #27AE60;
+            color: white;
+            border: none;
+            padding: 10px 15px;
+            font-size: 16px;
+            border-radius: 4px;
+            cursor: pointer;
+            width: 100%;
+            margin-bottom: 10px;
+        }
+        button:hover {
+            background-color: #219653;
+        }
+        button.secondary {
+            background-color: #2980B9;
+        }
+        button.secondary:hover {
+            background-color: #1A5276;
+        }
+        button.remove-btn {
+            background-color: #E74C3C;
+            font-size: 12px;
+            padding: 5px 10px;
+            width: auto;
+            float: right;
+            margin-bottom: 5px;
+        }
+        button.remove-btn:hover {
+            background-color: #C0392B;
+        }
+        .error {
+            color: #C0392B;
+            background: #FADBD8;
+            padding: 10px;
+            border-radius: 4px;
+            margin-bottom: 15px;
+        }
+        .plot-img {
+            max-width: 100%;
+            height: auto;
+            border: 1px solid #eee;
+        }
+        .geo-table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-top: 10px;
+            font-size: 13px;
+        }
+        .geo-table th, .geo-table td {
+            text-align: left;
+            padding: 4px;
+            border-bottom: 1px solid #eee;
+        }
+        .geo-table th {
+            color: #555;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="sidebar">
+            <h2>FrameStack</h2>
+            <p>Compare multiple bikes by adding them below.</p>
+            
+            {% if error %}
+            <div class="error">{{ error }}</div>
+            {% endif %}
+
+            <form method="POST" id="geometryForm">
+                <div id="bikeInputsContainer">
+                    {% for name, text in bikes_input %}
+                    <div class="bike-input">
+                        <div style="overflow: hidden; margin-bottom: 5px;">
+                            <input type="text" name="bike_name" value="{{ name }}" placeholder="Bike {{ loop.index }}" style="float: left; width: 65%; padding: 6px; font-weight: bold; border: 1px solid #ccc; border-radius: 3px;">
+                            {% if loop.index > 1 %}
+                            <button type="button" class="remove-btn" onclick="this.parentElement.parentElement.remove(); updateBikeIndices();">Remove</button>
+                            {% endif %}
+                        </div>
+                        <input type="file" class="fileInput" accept=".txt,.csv" style="margin: 10px 0; width: 100%; box-sizing: border-box;">
+                        <textarea name="geo_text" placeholder="Paste geometry here...">{{ text }}</textarea>
+                    </div>
+                    {% endfor %}
+                </div>
+                
+                <button type="button" class="secondary" onclick="addBikeInput()">+ Add Another Bike</button>
+                <button type="submit">Plot Comparison</button>
+            </form>
+
+            <script>
+                function attachFileListener(inputElement) {
+                    inputElement.addEventListener('change', function(e) {
+                        var file = e.target.files[0];
+                        if (!file) return;
+                        var reader = new FileReader();
+                        var textarea = e.target.parentElement.querySelector('textarea');
+                        
+                        // Auto-fill the bike name from the filename (without extension) if not set
+                        var nameInput = e.target.parentElement.querySelector('input[name="bike_name"]');
+                        if (nameInput && (nameInput.value === '' || nameInput.value.startsWith('Bike '))) {
+                            nameInput.value = file.name.replace(/\.[^/.]+$/, "");
+                        }
+
+                        reader.onload = function(e) {
+                            textarea.value = e.target.result;
+                        };
+                        reader.readAsText(file);
+                    });
+                }
+
+                // Attach to existing inputs
+                document.querySelectorAll('.fileInput').forEach(attachFileListener);
+
+                function updateBikeIndices() {
+                    var inputs = document.querySelectorAll('input[name="bike_name"]');
+                    inputs.forEach(function(el, i) {
+                        if (el.value.startsWith('Bike ')) {
+                            el.value = 'Bike ' + (i + 1);
+                        }
+                        el.placeholder = 'Bike ' + (i + 1);
+                    });
+                }
+
+                function addBikeInput() {
+                    var container = document.getElementById('bikeInputsContainer');
+                    var index = container.children.length + 1;
+                    var div = document.createElement('div');
+                    div.className = 'bike-input';
+                    div.innerHTML = `
+                        <div style="overflow: hidden; margin-bottom: 5px;">
+                            <input type="text" name="bike_name" value="Bike ${index}" placeholder="Bike ${index}" style="float: left; width: 65%; padding: 6px; font-weight: bold; border: 1px solid #ccc; border-radius: 3px;">
+                            <button type="button" class="remove-btn" onclick="this.parentElement.parentElement.remove(); updateBikeIndices();">Remove</button>
+                        </div>
+                        <input type="file" class="fileInput" accept=".txt,.csv" style="margin: 10px 0; width: 100%; box-sizing: border-box;">
+                        <textarea name="geo_text" placeholder="Paste geometry here..."></textarea>
+                    `;
+                    container.appendChild(div);
+                    attachFileListener(div.querySelector('.fileInput'));
+                }
+            </script>
+
+            {% if parsed_bikes %}
+            <h3>Parsed Geometries</h3>
+            {% for name, geo_data in parsed_bikes %}
+            <div class="bike-input">
+                <strong>{{ name }}</strong>
+                <table class="geo-table">
+                    <thead>
+                        <tr>
+                            <th>Parameter</th>
+                            <th>Value</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for key, value in geo_data.items() %}
+                        <tr>
+                            <td>{{ key }}</td>
+                            <td>{{ value }}</td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+            {% endfor %}
+            {% endif %}
+        </div>
+
+        <div class="main-content">
+            {% if image_data %}
+                <img class="plot-img" src="data:image/png;base64,{{ image_data }}" alt="Bike Geometry Plot">
+            {% else %}
+                <div style="padding: 100px 20px; color: #888;">
+                    Submit geometry on the left to see the plot here.
+                </div>
+            {% endif %}
+        </div>
+    </div>
+</body>
+</html>

@@ -1,0 +1,10 @@
+services:
+  - type: web
+    name: framestack
+    env: python
+    region: frankfurt # You can change this to ohio, oregon, singapore etc. based on your location
+    buildCommand: "pip install -e ."
+    startCommand: "gunicorn app:app --bind 0.0.0.0:$PORT"
+    envVars:
+      - key: PYTHON_VERSION
+        value: 3.9.0 # Ensures compatibility with your requires-python setting

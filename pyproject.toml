@@ -1,0 +1,22 @@
+[build-system]
+requires = ["setuptools>=61.0"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "framestack"
+version = "0.1.0"
+authors = [
+  { name="Jan Scholtz" }
+]
+description = "Plotting and comparing bike geometries to find the right frame size and stem/spacer combination."
+readme = "README.md"
+requires-python = ">=3.9"
+dependencies = [
+    "numpy",
+    "matplotlib",
+    "flask",
+    "gunicorn"
+]
+
+[project.optional-dependencies]
+notebook = ["jupyter"]
