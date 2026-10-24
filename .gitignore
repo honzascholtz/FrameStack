@@ -1,12 +1,10 @@
 /__pycache__
 .gitattributes
-/__pycache__
 .DS_Store
 /.vscode
-
-.venv
-venv
-test_venv
 *.egg-info
 build
 dist
+*.pyc
+*venv/
+*_venv/

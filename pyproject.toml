@@ -20,6 +20,7 @@ dependencies = [
 
 [project.optional-dependencies]
 notebook = ["jupyter"]
+dev = ["pre-commit", "pylint"]
 
 [tool.setuptools]
 py-modules = ["app", "FrameStack", "Graph_setup", "Bike_3d", "gui"]
