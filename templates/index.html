@@ -225,8 +225,22 @@
             {% if image_data %}
                 <img class="plot-img" src="data:image/png;base64,{{ image_data }}" alt="Bike Geometry Plot">
             {% else %}
-                <div style="padding: 100px 20px; color: #888;">
-                    Submit geometry on the left to see the plot here.
+                <div style="padding: 40px 20px; text-align: left; max-width: 800px; margin: 0 auto; line-height: 1.6; color: #444;">
+                    <h2 style="color: #2980B9; text-align: center; margin-bottom: 30px;">Welcome to FrameStack</h2>
+                    <p><strong>FrameStack</strong> is a tool for plotting and comparing bicycle geometries to help you find the right frame size and stem/spacer combinations.</p>
+                    
+                    <h3 style="margin-top: 30px;">How to use:</h3>
+                    <ul style="margin-bottom: 30px; padding-left: 20px;">
+                        <li style="margin-bottom: 10px;">Paste your bike geometry measurements (tab-separated or CSV from sources like Geometry Geeks) into the text boxes on the left.</li>
+                        <li style="margin-bottom: 10px;">Alternatively, use the file browser to load a <code>.txt</code> or <code>.csv</code> file directly.</li>
+                        <li style="margin-bottom: 10px;">Click <strong>+ Add Another Bike</strong> to compare multiple frames overlaid on top of each other.</li>
+                        <li style="margin-bottom: 10px;">Click <strong>Plot Comparison</strong> to generate a detailed 2D side-view diagram with key measurements annotated.</li>
+                    </ul>
+                    
+                    <div style="margin-top: 60px; padding-top: 20px; border-top: 1px solid #eee; text-align: center;">
+                        <p style="margin-bottom: 5px;"><strong>Author:</strong> Jan Scholtz</p>
+                        <p style="font-size: 11px; color: #999; margin-top: 0;"><em>Claude and Gemini helped to build and deploy this web application.</em></p>
+                    </div>
                 </div>
             {% endif %}
         </div>
