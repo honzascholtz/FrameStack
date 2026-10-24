@@ -4,7 +4,7 @@ services:
     env: python
     plan: free
     region: frankfurt # You can change this to ohio, oregon, singapore etc. based on your location
-    buildCommand: "pip install -e ."
+    buildCommand: "pip install ."
     startCommand: "gunicorn app:app --bind 0.0.0.0:$PORT"
     envVars:
       - key: PYTHON_VERSION
